@@ -50,13 +50,13 @@ class PatlasMashDist(Process):
         self.directives = {
             "runMashDist": {
                 "container": "flowcraft/mash-patlas",
-                "version": "1.1.0-1",
+                "version": "1.4.1",
                 "cpus": 1,
                 "memory": "{ 4.GB * task.attempt }"
             },
             "mashDistOutputJson": {
                 "container": "flowcraft/mash-patlas",
-                "version": "1.1.0-1",
+                "version": "1.4.1",
                 "cpus": 1,
                 "memory": "'4GB'"
             }
@@ -113,13 +113,13 @@ class PatlasMashScreen(Process):
         self.directives = {
             "mashScreen": {
                 "container": "flowcraft/mash-patlas",
-                "version": "1.1.0-1",
+                "version": "1.4.1",
                 "cpus": 1,
                 "memory": "{ 4.GB * task.attempt }"
             },
             "mashOutputJson": {
                 "container": "flowcraft/mash-patlas",
-                "version": "1.1.0-1",
+                "version": "1.4.1",
                 "cpus": 1,
                 "memory": "'4GB'"
             }
