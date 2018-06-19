@@ -84,13 +84,9 @@ def main(mash_output, hash_cutoff):
         A string with the input file.
 
     '''
-    # out_file = open(".".join(mash_output.split(".")[:-1]) + ".json", "w")
     input_f = open(mash_output, "r")
 
     master_dict = {}
-    # used to store the last sequence to be parsed (useful for multifasta)
-    last_seq = ""
-    counter = 0
 
     for line in input_f:
 
@@ -103,6 +99,11 @@ def main(mash_output, hash_cutoff):
         # creates a percentage of the shared hashes between the sample and the
         # reference
         perc_hashes = float(hashes_list[0]) / float(hashes_list[1])
+
+        # if ref_accession already in dict, i.e., if the same accession number
+        # matches more than one contig.
+        if ref_accession in master_dict.keys():
+            current_seq += ", {}".format(master_dict[ref_accession][-1])
 
         # assures that only the hashes with a given shared percentage are
         # reported to json file
