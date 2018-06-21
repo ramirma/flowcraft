@@ -102,6 +102,14 @@ def main(mash_output):
     output_json.write(json.dumps(filtered_dic))
     output_json.close()
 
+    json_dic = {
+        "patlas_mashscreen": filtered_dic
+        # TODO add information for report webapp
+    }
+
+    with open(".report.json", "w") as json_report:
+        json_report.write(json.dumps(json_dic, separators=(",", ":")))
+
 if __name__ == "__main__":
 
     main(MASH_TXT)

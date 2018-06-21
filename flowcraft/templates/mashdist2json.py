@@ -72,6 +72,14 @@ def send_to_output(master_dict, mash_output):
         out_file.write(json.dumps(master_dict))
         out_file.close()
 
+        json_dic = {
+            "patlas_mashdist": master_dict
+            # TODO add information for report webapp
+        }
+
+        with open(".report.json", "w") as json_report:
+            json_report.write(json.dumps(json_dic, separators=(",", ":")))
+
 
 @MainWrapper
 def main(mash_output, hash_cutoff):

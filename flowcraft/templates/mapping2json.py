@@ -143,6 +143,14 @@ def main(depth_file, json_dict, cutoff):
     output_json.write(json.dumps(percentage_basescovered))
     output_json.close()
 
+    json_dic = {
+        "patlas_mapping": percentage_basescovered
+        # TODO add information for report webapp
+    }
+
+    with open(".report.json", "w") as json_report:
+        json_report.write(json.dumps(json_dic, separators=(",", ":")))
+
 
 if __name__ == "__main__":
 
