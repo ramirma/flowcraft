@@ -45,7 +45,7 @@ class PatlasMapping(Process):
                                " to samtools."
             },
             "lengthJson": {
-                "default": "'/ngstools/data/reads_sample_result_length.json'",
+                "default": "'/ngstools/data/length_v1_4_1_11_06_2018.json'",
                 "description": "A dictionary of all the lengths of reference "
                                "sequences."
             }
