@@ -88,7 +88,7 @@ def depthfilereader(depth_file, plasmid_length, cutoff):
     counter = 0
     times = 1
     for line in depth_file:
-        tab_split = line.split()    # split by any white space
+        tab_split = line.split()  # split by any white space
         reference = "_".join(tab_split[0].strip().split("_")[0:3])  # store
         # only the gi for the reference
         position = tab_split[1]
@@ -99,7 +99,8 @@ def depthfilereader(depth_file, plasmid_length, cutoff):
             # get the number of intervals for this reference sequence
             interval = int(plasmid_length[reference]) / number_of_points
             # some plasmids can be smaller than 10000
-            if interval < 1: interval = 1
+            if interval < 1:
+                interval = 1
             dict_cov[reference] = {
                 "xticks": [],
                 "values": [],
@@ -112,9 +113,9 @@ def depthfilereader(depth_file, plasmid_length, cutoff):
             array_of_cov.append(numreadsalign)
         else:
             array_of_cov.append(numreadsalign)
-            dict_cov[reference]["xticks"].append(interval*times)
+            dict_cov[reference]["xticks"].append(interval * times)
             dict_cov[reference]["values"].append(
-                round(sum(array_of_cov)/len(array_of_cov), 2)
+                round(sum(array_of_cov) / len(array_of_cov), 2)
             )
             counter = 0
             times += 1
@@ -123,12 +124,13 @@ def depthfilereader(depth_file, plasmid_length, cutoff):
     for ref in depth_dic_coverage:
         # calculates the percentage value per each reference
         perc_value_per_ref = float(len(depth_dic_coverage[ref])) / \
-                                       float(plasmid_length[ref])
+                             float(plasmid_length[ref])
         # checks if percentage value is higher or equal to the cutoff defined
         if perc_value_per_ref >= float(cutoff):
             percentage_basescovered[ref] = perc_value_per_ref
 
     return percentage_basescovered, dict_cov
+
 
 @MainWrapper
 def main(depth_file, json_dict, cutoff, sample_id):
@@ -193,5 +195,4 @@ def main(depth_file, json_dict, cutoff, sample_id):
 
 
 if __name__ == "__main__":
-
     main(DEPTH_TXT, JSON_LENGTH, CUTOFF, SAMPLE_ID)
