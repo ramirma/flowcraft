@@ -43,6 +43,7 @@ logger = get_logger(__file__)
 if __file__.endswith(".command.sh"):
     DEPTH_TXT = '$depthFile'
     JSON_LENGTH = '$lengthJson'
+    SAMPLE_ID = '$sample_id'
     CUTOFF = '$params.cov_cutoff'
     logger.debug("Running {} with parameters:".format(
         os.path.basename(__file__)))
@@ -74,16 +75,49 @@ def depthfilereader(depth_file, plasmid_length, cutoff):
             stores the percentage of the total sequence of a
             reference/accession (plasmid) in a dictionary
     '''
+
+    # dict to store the mean coverage for each reference
     depth_dic_coverage = {}
+    # the number of points to generate the plot of coverage in flowcraft-webapp
+    number_of_points = 10000
+    # dict to store coverage results for a given interval of points
+    dict_cov = {}
+    # temporary array to store coverage values for a given interval
+    array_of_cov = []
+
+    counter = 0
+    times = 1
     for line in depth_file:
         tab_split = line.split()    # split by any white space
         reference = "_".join(tab_split[0].strip().split("_")[0:3])  # store
         # only the gi for the reference
         position = tab_split[1]
         numreadsalign = float(tab_split[2].rstrip())
+
         if reference not in depth_dic_coverage:
             depth_dic_coverage[reference] = {}
+            # get the number of intervals for this reference sequence
+            interval = int(plasmid_length[reference]) / number_of_points
+            # some plasmids can be smaller than 10000
+            if interval < 1: interval = 1
+            dict_cov[reference] = {
+                "xticks": [],
+                "values": [],
+            }
+
         depth_dic_coverage[reference][position] = numreadsalign
+
+        if interval & counter < interval:
+            counter += 1
+            array_of_cov.append(numreadsalign)
+        else:
+            array_of_cov.append(numreadsalign)
+            dict_cov[reference]["xticks"].append(interval*times)
+            dict_cov[reference]["values"].append(
+                round(sum(array_of_cov)/len(array_of_cov), 2)
+            )
+            counter = 0
+            times += 1
 
     percentage_basescovered = {}
     for ref in depth_dic_coverage:
@@ -94,10 +128,10 @@ def depthfilereader(depth_file, plasmid_length, cutoff):
         if perc_value_per_ref >= float(cutoff):
             percentage_basescovered[ref] = perc_value_per_ref
 
-    return percentage_basescovered
+    return percentage_basescovered, dict_cov
 
 @MainWrapper
-def main(depth_file, json_dict, cutoff):
+def main(depth_file, json_dict, cutoff, sample_id):
     '''
     Function that handles the inputs required to parse depth files from bowtie
     and dumps a dict to a json file that can be imported into pATLAS.
@@ -134,8 +168,9 @@ def main(depth_file, json_dict, cutoff):
     # first reads the depth file and generates dictionaries to handle the input
     # to a simpler format
     logger.info("Reading depth file and creating dictionary to dump")
-    percentage_basescovered = depthfilereader(depth_file_reader, plasmid_length,
-                                              cutoff_val)
+    percentage_basescovered, dict_cov = depthfilereader(depth_file_reader,
+                                                        plasmid_length,
+                                                        cutoff_val)
 
     # then dump do file
     output_json = open("{}_mapping.json".format(depth_file), "w")
@@ -144,8 +179,13 @@ def main(depth_file, json_dict, cutoff):
     output_json.close()
 
     json_dic = {
-        "patlas_mapping": percentage_basescovered
-        # TODO add information for report webapp
+        "sample": sample_id,
+        "patlas_mapping": percentage_basescovered,
+        "plotData": {
+            "header": "Coverage results for plasmids",
+            "data": dict_cov,
+            "plot": "mappingPlasmids"
+        }
     }
 
     with open(".report.json", "w") as json_report:
@@ -154,4 +194,4 @@ def main(depth_file, json_dict, cutoff):
 
 if __name__ == "__main__":
 
-    main(DEPTH_TXT, JSON_LENGTH, CUTOFF)
+    main(DEPTH_TXT, JSON_LENGTH, CUTOFF, SAMPLE_ID)
