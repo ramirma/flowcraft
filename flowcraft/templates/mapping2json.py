@@ -108,7 +108,7 @@ def depthfilereader(depth_file, plasmid_length, cutoff):
 
         depth_dic_coverage[reference][position] = numreadsalign
 
-        if interval & counter < interval:
+        if interval & float(counter) < interval:
             counter += 1
             array_of_cov.append(numreadsalign)
         else:
