@@ -46,21 +46,22 @@ if __file__.endswith(".command.sh"):
     JSON_LENGTH = '$lengthJson'
     SAMPLE_ID = '$sample_id'
     CUTOFF = '$params.cov_cutoff'
+else:
+    DEPTH_TXT = sys.argv[1]
+    JSON_LENGTH = sys.argv[2]
+    SAMPLE_ID = sys.argv[3]
+    CUTOFF = sys.argv[4]
+
+# check if all variables are assigned
+if DEPTH_TXT and JSON_LENGTH and SAMPLE_ID and CUTOFF:
     logger.debug("Running {} with parameters:".format(
         os.path.basename(__file__)))
     logger.debug("DEPTH_TXT: {}".format(DEPTH_TXT))
     logger.debug("JSON_LENGHT: {}".format(JSON_LENGTH))
     logger.debug("CUTOFF: {}".format(CUTOFF))
 else:
-    DEPTH_TXT = sys.argv[1]
-    JSON_LENGTH = sys.argv[2]
-    SAMPLE_ID = sys.argv[3]
-    CUTOFF = sys.argv[4]
-    logger.debug("Running {} with parameters:".format(
-        os.path.basename(__file__)))
-    logger.debug("DEPTH_TXT: {}".format(DEPTH_TXT))
-    logger.debug("JSON_LENGHT: {}".format(JSON_LENGTH))
-    logger.debug("CUTOFF: {}".format(CUTOFF))
+    logger.error("Args should be given to this template, either from sys.argv"
+                 " or through nextflow variables")
 
 
 def depth_file_reader(depth_file, plasmid_length, cutoff):
