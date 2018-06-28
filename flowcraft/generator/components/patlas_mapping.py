@@ -74,24 +74,22 @@ class PatlasMapping(Process):
                 "cpus": 1,
                 "memory": "{ 4.GB * task.attempt }"
             },
-            "samtoolsView": {
-                "container": "flowcraft/mapping-patlas",
-                "version": "1.4.1",
-                "cpus": 1,
-                "memory": "{ 4.GB * task.attempt }"
-            },
-            "jsonDumpingMapping": {
-                "container": "flowcraft/mapping-patlas",
-                "version": "1.4.1",
-                "cpus": 1,
-                "memory": "'4GB'"
-            }
+            # "samtoolsView": {
+            #     "container": "flowcraft/mapping-patlas",
+            #     "version": "1.4.1",
+            #     "cpus": 1,
+            #     "memory": "{ 4.GB * task.attempt }"
+            # },
+            # "jsonDumpingMapping": {
+            #     "container": "flowcraft/mapping-patlas",
+            #     "version": "1.4.1",
+            #     "cpus": 1,
+            #     "memory": "'4GB'"
+            # }
         }
 
         self.status_channels = [
             "mappingBowtie",
-            "samtoolsView",
-            "jsonDumpingMapping"
         ]
 
         self.compiler["patlas_consensus"] = ["mappingOutputChannel"]

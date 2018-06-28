@@ -51,6 +51,16 @@ if __file__.endswith(".command.sh"):
     logger.debug("DEPTH_TXT: {}".format(DEPTH_TXT))
     logger.debug("JSON_LENGHT: {}".format(JSON_LENGTH))
     logger.debug("CUTOFF: {}".format(CUTOFF))
+else:
+    DEPTH_TXT = sys.argv[1]
+    JSON_LENGTH = sys.argv[2]
+    SAMPLE_ID = sys.argv[3]
+    CUTOFF = sys.argv[4]
+    logger.debug("Running {} with parameters:".format(
+        os.path.basename(__file__)))
+    logger.debug("DEPTH_TXT: {}".format(DEPTH_TXT))
+    logger.debug("JSON_LENGHT: {}".format(JSON_LENGTH))
+    logger.debug("CUTOFF: {}".format(CUTOFF))
 
 
 def depth_file_reader(depth_file, plasmid_length, cutoff):
@@ -191,7 +201,7 @@ def main(depth_file, json_dict, cutoff, sample_id):
                                                            cutoff_val)
 
     if percentage_bases_covered and dict_cov:
-        logger.info("percentage_bases_covered length: {}\n"
+        logger.info("percentage_bases_covered length: {}"
                     "dict_cov length: {}".format(
                         str(len(percentage_bases_covered)),
                         str(len(dict_cov))
