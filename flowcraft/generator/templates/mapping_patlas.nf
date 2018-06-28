@@ -31,15 +31,13 @@ process mappingBowtie_{{ pid }} {
 
     """
     bowtie2 -x ${bowtie2Index} ${readsString} -p ${task.cpus} -k \
-    ${params.max_k} -5 ${params.trim5} -S mappingBowtie_${sample_id}.sam
-    samtools view -b -t ${samtoolsIdx} -@ ${task.cpus} mappingBowtie_${sample_id}.sam | \
+    ${params.max_k} -5 ${params.trim5} | \
+    samtools view -b -t ${samtoolsIdx} -@ ${task.cpus} - | \
     samtools sort -@ ${task.cpus} -o samtoolsSorted_${sample_id}.bam
-    rm mappingBowtie_${sample_id}.sam
     samtools index samtoolsSorted_${sample_id}.bam
     samtools depth samtoolsSorted_${sample_id}.bam > samtoolsDepthOutput_${sample_id}.txt
-    rm samtoolsSorted_${sample_id}.bam
     mapping2json.py  samtoolsDepthOutput_${sample_id}.txt ${lengthJson} ${sample_id} ${params.cov_cutoff}
-    rm samtoolsDepthOutput_${sample_id}.txt
+    rm samtoolsDepthOutput_${sample_id}.txt samtoolsSorted_${sample_id}.bam
     """
 }
 

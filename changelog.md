@@ -7,6 +7,11 @@
 - `maxbin2`: An automatic tool for binning metagenomic sequences
 - `bowtie2`: Align short paired-end sequencing reads to long reference sequences
 
+### Components changes
+
+- `mapping_patlas`: refactored to remove temporary files used to create
+sam and bam files
+
 ### Minor/Other changes
 
 - Added "smart" check when the user provides a typo in pipeline string
