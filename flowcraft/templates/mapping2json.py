@@ -35,6 +35,7 @@ __template__ = "mapping2json-nf"
 
 import os
 import json
+import sys
 
 from flowcraft_utils.flowcraft_base import get_logger, MainWrapper
 
@@ -52,29 +53,30 @@ if __file__.endswith(".command.sh"):
     logger.debug("CUTOFF: {}".format(CUTOFF))
 
 
-def depthfilereader(depth_file, plasmid_length, cutoff):
-    '''
+def depth_file_reader(depth_file, plasmid_length, cutoff):
+    """
     Function that parse samtools depth file and creates 3 dictionaries that
     will be useful to make the outputs of this script, both the tabular file
     and the json file that may be imported by pATLAS
 
     Parameters
     ----------
-    depth_file: str
+    depth_file: textIO
         the path to depth file for each sample
     plasmid_length: dict
         a dictionary that stores length of all plasmids in fasta given as input
-    cutoff: str
+    cutoff: float
         the cutoff used to trim the unwanted matches for the minimum coverage
         results from mapping. This is then converted into a float within this
-        function in order to compare with the value returned from the perc_value_per_ref.
+        function in order to compare with the value returned from the
+        perc_value_per_ref.
 
     Returns
     -------
-    percentage_basescovered: dict
+    percentage_bases_covered: dict
             stores the percentage of the total sequence of a
             reference/accession (plasmid) in a dictionary
-    '''
+    """
 
     # dict to store the mean coverage for each reference
     depth_dic_coverage = {}
@@ -92,7 +94,7 @@ def depthfilereader(depth_file, plasmid_length, cutoff):
         reference = "_".join(tab_split[0].strip().split("_")[0:3])  # store
         # only the gi for the reference
         position = tab_split[1]
-        numreadsalign = float(tab_split[2].rstrip())
+        num_reads_align = float(tab_split[2].rstrip())
 
         if reference not in depth_dic_coverage:
             depth_dic_coverage[reference] = {}
@@ -106,13 +108,13 @@ def depthfilereader(depth_file, plasmid_length, cutoff):
                 "values": [],
             }
 
-        depth_dic_coverage[reference][position] = numreadsalign
+        depth_dic_coverage[reference][position] = num_reads_align
 
         if interval and float(counter) < interval:
             counter += 1
-            array_of_cov.append(numreadsalign)
+            array_of_cov.append(num_reads_align)
         else:
-            array_of_cov.append(numreadsalign)
+            array_of_cov.append(num_reads_align)
             dict_cov[reference]["xticks"].append(interval * times)
             dict_cov[reference]["values"].append(
                 round(sum(array_of_cov) / len(array_of_cov), 2)
@@ -120,21 +122,26 @@ def depthfilereader(depth_file, plasmid_length, cutoff):
             counter = 0
             times += 1
 
-    percentage_basescovered = {}
+    logger.info("Finished parsing depth file.")
+
+    percentage_bases_covered = {}
     for ref in depth_dic_coverage:
         # calculates the percentage value per each reference
         perc_value_per_ref = float(len(depth_dic_coverage[ref])) / \
                              float(plasmid_length[ref])
         # checks if percentage value is higher or equal to the cutoff defined
         if perc_value_per_ref >= float(cutoff):
-            percentage_basescovered[ref] = perc_value_per_ref
+            percentage_bases_covered[ref] = perc_value_per_ref
 
-    return percentage_basescovered, dict_cov
+    logger.info("Successfully generated dicts necessary for output json file "
+                "and .report.json depth file.")
+
+    return percentage_bases_covered, dict_cov
 
 
 @MainWrapper
 def main(depth_file, json_dict, cutoff, sample_id):
-    '''
+    """
     Function that handles the inputs required to parse depth files from bowtie
     and dumps a dict to a json file that can be imported into pATLAS.
 
@@ -143,14 +150,16 @@ def main(depth_file, json_dict, cutoff, sample_id):
     depth_file: str
          the path to depth file for each sample
     json_dict: str
-        the file that contains the dictionary with keys and values for accessions
+        the file that contains the dictionary with keys and values for
+        accessions
         and their respective lengths
     cutoff: str
         the cutoff used to trim the unwanted matches for the minimum coverage
         results from mapping. This value may range between 0 and 1.
+    sample_id: str
+        the id of the sample being parsed
 
-
-    '''
+    """
 
     # check for the appropriate value for the cutoff value for coverage results
     try:
@@ -163,26 +172,41 @@ def main(depth_file, json_dict, cutoff, sample_id):
     # loads dict from file, this file is provided in docker image
 
     plasmid_length = json.load(open(json_dict))
+    if plasmid_length:
+        logger.info("Loaded dictionary of plasmid lengths")
+    else:
+        logger.error("Something went wrong and plasmid lengths dictionary"
+                     "could not be loaded. Check if process received this"
+                     "param successfully.")
+        sys.exit(1)
 
     # read depth file
-    depth_file_reader = open(depth_file)
+    depth_file_in = open(depth_file)
 
     # first reads the depth file and generates dictionaries to handle the input
     # to a simpler format
     logger.info("Reading depth file and creating dictionary to dump")
-    percentage_basescovered, dict_cov = depthfilereader(depth_file_reader,
-                                                        plasmid_length,
-                                                        cutoff_val)
+    percentage_bases_covered, dict_cov = depth_file_reader(depth_file_in,
+                                                           plasmid_length,
+                                                           cutoff_val)
+
+    if percentage_bases_covered and dict_cov:
+        logger.info("percentage_bases_covered length: {}.\n".format(
+            str(len(percentage_bases_covered))),
+            "dict_cov length: {}.".format(str(len(dict_cov))))
+    else:
+        logger.error("Both dicts that dump to JSON file or .report.json are "
+                     "empty.")
 
     # then dump do file
     output_json = open("{}_mapping.json".format(depth_file), "w")
     logger.info("Dumping to {}".format("{}_mapping.json".format(depth_file)))
-    output_json.write(json.dumps(percentage_basescovered))
+    output_json.write(json.dumps(percentage_bases_covered))
     output_json.close()
 
     json_dic = {
         "sample": sample_id,
-        "patlas_mapping": percentage_basescovered,
+        "patlas_mapping": percentage_bases_covered,
         "plotData": {
             "header": "Coverage results for plasmids",
             "data": dict_cov,
@@ -190,6 +214,7 @@ def main(depth_file, json_dict, cutoff, sample_id):
         }
     }
 
+    logger.info("Writting to .report.json")
     with open(".report.json", "w") as json_report:
         json_report.write(json.dumps(json_dic, separators=(",", ":")))
 
