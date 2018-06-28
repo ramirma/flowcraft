@@ -185,15 +185,17 @@ def main(depth_file, json_dict, cutoff, sample_id):
 
     # first reads the depth file and generates dictionaries to handle the input
     # to a simpler format
-    logger.info("Reading depth file and creating dictionary to dump")
+    logger.info("Reading depth file and creating dictionary to dump.")
     percentage_bases_covered, dict_cov = depth_file_reader(depth_file_in,
                                                            plasmid_length,
                                                            cutoff_val)
 
     if percentage_bases_covered and dict_cov:
-        logger.info("percentage_bases_covered length: {}.\n".format(
-            str(len(percentage_bases_covered))),
-            "dict_cov length: {}.".format(str(len(dict_cov))))
+        logger.info("percentage_bases_covered length: {}\n"
+                    "dict_cov length: {}".format(
+                        str(len(percentage_bases_covered)),
+                        str(len(dict_cov))
+                    ))
     else:
         logger.error("Both dicts that dump to JSON file or .report.json are "
                      "empty.")
