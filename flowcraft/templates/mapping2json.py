@@ -64,7 +64,7 @@ else:
                  " or through nextflow variables")
 
 
-def depth_file_reader(depth_file, plasmid_length, cutoff):
+def depth_file_reader(depth_file):
     """
     Function that parse samtools depth file and creates 3 dictionaries that
     will be useful to make the outputs of this script, both the tabular file
@@ -84,22 +84,13 @@ def depth_file_reader(depth_file, plasmid_length, cutoff):
 
     Returns
     -------
-    percentage_bases_covered: dict
-            stores the percentage of the total sequence of a
-            reference/accession (plasmid) in a dictionary
+    depth_dic_coverage: dict
+            dictionary with the coverage per position for each plasmid
     """
 
     # dict to store the mean coverage for each reference
     depth_dic_coverage = {}
-    # the number of points to generate the plot of coverage in flowcraft-webapp
-    number_of_points = 10000
-    # dict to store coverage results for a given interval of points
-    dict_cov = {}
-    # temporary array to store coverage values for a given interval
-    array_of_cov = []
 
-    counter = 0
-    times = 1
     for line in depth_file:
         tab_split = line.split()  # split by any white space
         reference = "_".join(tab_split[0].strip().split("_")[0:3])  # store
@@ -109,33 +100,34 @@ def depth_file_reader(depth_file, plasmid_length, cutoff):
 
         if reference not in depth_dic_coverage:
             depth_dic_coverage[reference] = {}
-            # get the number of intervals for this reference sequence
-            interval = int(plasmid_length[reference]) / number_of_points
-            # some plasmids can be smaller than 10000
-            if interval < 1:
-                interval = 1
-            dict_cov[reference] = {
-                "xticks": [],
-                "values": [],
-            }
 
         depth_dic_coverage[reference][position] = num_reads_align
 
-        if interval and float(counter) < interval:
-            counter += 1
-            array_of_cov.append(num_reads_align)
-        else:
-            array_of_cov.append(num_reads_align)
-            dict_cov[reference]["xticks"].append(interval * times)
-            dict_cov[reference]["values"].append(
-                round(sum(array_of_cov) / len(array_of_cov), 2)
-            )
-            counter = 0
-            times += 1
-
     logger.info("Finished parsing depth file.")
+    return depth_dic_coverage
 
+
+def generate_jsons(depth_dic_coverage, plasmid_length, cutoff):
+    """
+
+    Parameters
+    ----------
+    depth_dic_coverage: dict
+         dictionary with the coverage per position for each plasmid
+
+    Returns
+    -------
+    percentage_bases_covered: dict
+    dict_cov:  dict
+
+    """
+
+    # initializes the dictionary with the mean coverage results per plasmid
     percentage_bases_covered = {}
+    # the number of points to generate the plot of coverage in flowcraft-webapp
+    number_of_points = 10000
+    # dict to store coverage results for a given interval of points
+    dict_cov = {}
     for ref in depth_dic_coverage:
         # calculates the percentage value per each reference
         perc_value_per_ref = float(len(depth_dic_coverage[ref])) / \
@@ -144,8 +136,63 @@ def depth_file_reader(depth_file, plasmid_length, cutoff):
         if perc_value_per_ref >= float(cutoff):
             percentage_bases_covered[ref] = perc_value_per_ref
 
+        # starts parser to get the array with the coverage for all the positions
+        array_of_cov = []
+        last_position = 0
+        for pos in depth_dic_coverage[ref]:
+            current_position = float(pos)
+            # if the first element is being parsed
+            if last_position == 0:
+                array_of_cov.append(depth_dic_coverage[ref][pos])
+                last_position = 1
+            # if current_position is different from the last_position + 1
+            # it means that there is a gap in the coverage information
+            elif current_position != (last_position + 1):
+                diff_position = int(current_position - last_position)
+                array_of_cov.extend([0] * diff_position)
+                last_position = current_position
+            # otherwise if data is continuous just add it to array_of_cov
+            else:
+                array_of_cov.append(depth_dic_coverage[ref][pos])
+                last_position = current_position
+
+        # then finally if array_of_cov doesnt have elements to the end of the
+        # full plasmid length, add 0 to the remaining positions
+        diff_arrays = int(plasmid_length[ref] - len(array_of_cov))
+        if diff_arrays:
+            array_of_cov.extend([0] * diff_arrays)
+
+        interval = round(int(plasmid_length[ref]) / number_of_points,
+                         ndigits=0)
+        # some plasmids can be smaller than 10000
+        if interval < 1:
+            interval = 1
+
+        # starts dict cov for the reference
+        dict_cov[ref] = {
+            "xticks": [],
+            "values": [],
+        }
+
+        counter = 1
+        previous_counter = 0
+        for x, entry in enumerate(array_of_cov):
+            max_xtick = x + 1
+            if counter == interval:
+                dict_cov[ref]["xticks"].append(max_xtick)
+                dict_cov[ref]["values"].append(round(
+                    (sum(array_of_cov[previous_counter:max_xtick])/interval)))
+                previous_counter = max_xtick
+                counter = 1
+            else:
+                counter += 1
+
+        dict_cov[ref]["xticks"].append(max_xtick)
+        dict_cov[ref]["values"].append(round(
+            (sum(array_of_cov[previous_counter:max_xtick]) / interval)))
+
     logger.info("Successfully generated dicts necessary for output json file "
-                "and .report.json depth file.")
+                    "and .report.json depth file.")
 
     return percentage_bases_covered, dict_cov
 
@@ -197,9 +244,9 @@ def main(depth_file, json_dict, cutoff, sample_id):
     # first reads the depth file and generates dictionaries to handle the input
     # to a simpler format
     logger.info("Reading depth file and creating dictionary to dump.")
-    percentage_bases_covered, dict_cov = depth_file_reader(depth_file_in,
-                                                           plasmid_length,
-                                                           cutoff_val)
+    depth_dic_coverage = depth_file_reader(depth_file_in)
+    percentage_bases_covered, dict_cov = generate_jsons(depth_dic_coverage,
+                                                        plasmid_length, cutoff)
 
     if percentage_bases_covered and dict_cov:
         logger.info("percentage_bases_covered length: {}"
