@@ -145,51 +145,53 @@ def generate_jsons(depth_dic_coverage, plasmid_length, cutoff):
         if perc_value_per_ref >= cutoff:
             percentage_bases_covered[ref] = perc_value_per_ref
 
-        # starts parser to get the array with the coverage for all the positions
-        # first, sets the interval for the reference being parsed
-        interval = round(int(plasmid_length[ref]) / number_of_points,
-                         ndigits=0)
-        # some plasmids can be smaller than 10000
-        if interval < 1:
-            interval = 1
+            # starts parser to get the array with the coverage for all the positions
+            # first, sets the interval for the reference being parsed
+            interval = round(int(plasmid_length[ref]) / number_of_points,
+                             ndigits=0)
+            # some plasmids can be smaller than 10000
+            if interval < 1:
+                interval = 1
 
-        # starts dict cov for the reference
-        dict_cov[ref] = {
-            "ranges": [],  # this then needs to be converted into xticks
-            "values": [],  # doesn't store 0's, needs to be added in the plot
-            "interval": int(interval),
-            "length": int(plasmid_length[ref])
-        }
+            # starts dict cov for the reference
+            dict_cov[ref] = {
+                "ranges": [],  # this then needs to be converted into xticks
+                "values": [],  # doesn't store 0, needs to be added in the plot
+                "interval": int(interval),
+                "length": int(plasmid_length[ref])
+            }
 
-        last_position = 0
-        array_of_cov = []
-        for pos in depth_dic_coverage[ref]:
-            current_position = int(pos)
-            # if current_position is different from the last_position + 1
-            # it means that there is a gap in the coverage information
-            if last_position == 0 or current_position == (last_position + 1):
-                pass
-            # otherwise if data is continuous just add it to array_of_cov
-            else:
-                dict_cov[ref]["ranges"].append({
-                    "start": first_position,
-                    "end": last_position
-                })
-                dict_cov[ref]["values"].append(array_of_cov)
-                # when there is a gap between two adjacent positions, re-assign
-                # first_position to the current_position
-                first_position = current_position
-                array_of_cov = []
+            last_position = 0
+            array_of_cov = []
+            for pos in depth_dic_coverage[ref]:
+                current_position = int(pos)
+                # if current_position is different from the last_position + 1
+                # it means that there is a gap in the coverage information
+                if last_position == 0 or \
+                        current_position == (last_position + 1):
+                    pass
+                # otherwise if data is continuous just add it to array_of_cov
+                else:
+                    dict_cov[ref]["ranges"].append({
+                        "start": first_position,
+                        "end": last_position
+                    })
+                    dict_cov[ref]["values"].append(array_of_cov)
+                    # when there is a gap between two adjacent positions,
+                    # re-assign
+                    # first_position to the current_position
+                    first_position = current_position
+                    array_of_cov = []
 
-            array_of_cov.append(int(depth_dic_coverage[ref][pos]))
-            last_position = current_position
+                array_of_cov.append(int(depth_dic_coverage[ref][pos]))
+                last_position = current_position
 
-        # add final entry to dictionary
-        dict_cov[ref]["ranges"].append({
-            "start": first_position,
-            "end": last_position
-        })
-        dict_cov[ref]["values"].append(array_of_cov)
+            # add final entry to dictionary
+            dict_cov[ref]["ranges"].append({
+                "start": first_position,
+                "end": last_position
+            })
+            dict_cov[ref]["values"].append(array_of_cov)
 
 
 
