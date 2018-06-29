@@ -36,6 +36,7 @@ __template__ = "mapping2json-nf"
 import os
 import json
 import sys
+from pympler.asizeof import asizeof
 
 from flowcraft_utils.flowcraft_base import get_logger, MainWrapper
 
@@ -104,6 +105,11 @@ def depth_file_reader(depth_file):
         depth_dic_coverage[reference][position] = num_reads_align
 
     logger.info("Finished parsing depth file.")
+    depth_file.close()
+
+    logger.debug("Size of dict_cov: {} kb".format(
+        asizeof(depth_dic_coverage)/1024))
+
     return depth_dic_coverage
 
 
@@ -129,39 +135,18 @@ def generate_jsons(depth_dic_coverage, plasmid_length, cutoff):
     # dict to store coverage results for a given interval of points
     dict_cov = {}
     for ref in depth_dic_coverage:
+        # gets the first position for each reference
+        first_position = list(depth_dic_coverage[ref].keys())[0]
+
         # calculates the percentage value per each reference
         perc_value_per_ref = float(len(depth_dic_coverage[ref])) / \
                              float(plasmid_length[ref])
         # checks if percentage value is higher or equal to the cutoff defined
-        if perc_value_per_ref >= float(cutoff):
+        if perc_value_per_ref >= cutoff:
             percentage_bases_covered[ref] = perc_value_per_ref
 
         # starts parser to get the array with the coverage for all the positions
-        array_of_cov = []
-        last_position = 0
-        for pos in depth_dic_coverage[ref]:
-            current_position = float(pos)
-            # if the first element is being parsed
-            if last_position == 0:
-                array_of_cov.append(depth_dic_coverage[ref][pos])
-                last_position = 1
-            # if current_position is different from the last_position + 1
-            # it means that there is a gap in the coverage information
-            elif current_position != (last_position + 1):
-                diff_position = int(current_position - last_position)
-                array_of_cov.extend([0] * diff_position)
-                last_position = current_position
-            # otherwise if data is continuous just add it to array_of_cov
-            else:
-                array_of_cov.append(depth_dic_coverage[ref][pos])
-                last_position = current_position
-
-        # then finally if array_of_cov doesnt have elements to the end of the
-        # full plasmid length, add 0 to the remaining positions
-        diff_arrays = int(plasmid_length[ref] - len(array_of_cov))
-        if diff_arrays:
-            array_of_cov.extend([0] * diff_arrays)
-
+        # first, sets the interval for the reference being parsed
         interval = round(int(plasmid_length[ref]) / number_of_points,
                          ndigits=0)
         # some plasmids can be smaller than 10000
@@ -170,30 +155,50 @@ def generate_jsons(depth_dic_coverage, plasmid_length, cutoff):
 
         # starts dict cov for the reference
         dict_cov[ref] = {
-            "xticks": [],
-            "values": [],
+            "ranges": [],  # this then needs to be converted into xticks
+            "values": [],  # doesn't store 0's, needs to be added in the plot
+            "interval": int(interval),
+            "length": int(plasmid_length[ref])
         }
 
-        counter = 1
-        previous_counter = 0
-        for x, entry in enumerate(array_of_cov):
-            max_xtick = x + 1
-            if counter == interval:
-                dict_cov[ref]["xticks"].append(max_xtick)
-                dict_cov[ref]["values"].append(round(
-                    (sum(array_of_cov[previous_counter:max_xtick])/interval)))
-                previous_counter = max_xtick
-                counter = 1
+        last_position = 0
+        array_of_cov = []
+        for pos in depth_dic_coverage[ref]:
+            current_position = int(pos)
+            # if current_position is different from the last_position + 1
+            # it means that there is a gap in the coverage information
+            if last_position == 0 or current_position == (last_position + 1):
+                pass
+            # otherwise if data is continuous just add it to array_of_cov
             else:
-                counter += 1
+                dict_cov[ref]["ranges"].append({
+                    "start": first_position,
+                    "end": last_position
+                })
+                dict_cov[ref]["values"].append(array_of_cov)
+                # when there is a gap between two adjacent positions, re-assign
+                # first_position to the current_position
+                first_position = current_position
+                array_of_cov = []
 
-        dict_cov[ref]["xticks"].append(max_xtick)
-        dict_cov[ref]["values"].append(round(
-            (sum(array_of_cov[previous_counter:max_xtick]) / interval)))
+            array_of_cov.append(int(depth_dic_coverage[ref][pos]))
+            last_position = current_position
+
+        # add final entry to dictionary
+        dict_cov[ref]["ranges"].append({
+            "start": first_position,
+            "end": last_position
+        })
+        dict_cov[ref]["values"].append(array_of_cov)
+
+
 
     logger.info("Successfully generated dicts necessary for output json file "
-                    "and .report.json depth file.")
+                "and .report.json depth file.")
 
+    logger.debug("Size of percentage_bases_covered: {} kb".format(
+        asizeof(percentage_bases_covered)/1024))
+    logger.debug("Size of dict_cov: {} kb".format(asizeof(dict_cov)/1024))
     return percentage_bases_covered, dict_cov
 
 
@@ -246,7 +251,8 @@ def main(depth_file, json_dict, cutoff, sample_id):
     logger.info("Reading depth file and creating dictionary to dump.")
     depth_dic_coverage = depth_file_reader(depth_file_in)
     percentage_bases_covered, dict_cov = generate_jsons(depth_dic_coverage,
-                                                        plasmid_length, cutoff)
+                                                        plasmid_length,
+                                                        cutoff_val)
 
     if percentage_bases_covered and dict_cov:
         logger.info("percentage_bases_covered length: {}"
@@ -259,22 +265,22 @@ def main(depth_file, json_dict, cutoff, sample_id):
                      "empty.")
 
     # then dump do file
-    output_json = open("{}_mapping.json".format(depth_file), "w")
+    # output_json = open("{}_mapping.json".format(depth_file), "w")
     logger.info("Dumping to {}".format("{}_mapping.json".format(depth_file)))
-    output_json.write(json.dumps(percentage_bases_covered))
-    output_json.close()
+    with open("{}_mapping.json".format(depth_file), "w") as output_json:
+        output_json.write(json.dumps(percentage_bases_covered))
+    # output_json.close()
 
     json_dic = {
         "sample": sample_id,
         "patlas_mapping": percentage_bases_covered,
         "plotData": {
-            "header": "Coverage results for plasmids",
-            "data": dict_cov,
-            "plot": "mappingPlasmids"
+            "mappingPlasmids": dict_cov,
         }
     }
 
-    logger.info("Writting to .report.json")
+    logger.debug("Size of dict_cov: {} kb".format(asizeof(json_dic)/1024))
+    logger.info("Writing to .report.json")
     with open(".report.json", "w") as json_report:
         json_report.write(json.dumps(json_dic, separators=(",", ":")))
 
