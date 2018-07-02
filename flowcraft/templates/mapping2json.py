@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-
 """
 Purpose
 -------
@@ -145,7 +144,8 @@ def generate_jsons(depth_dic_coverage, plasmid_length, cutoff):
         if perc_value_per_ref >= cutoff:
             percentage_bases_covered[ref] = perc_value_per_ref
 
-            # starts parser to get the array with the coverage for all the positions
+            # starts parser to get the array with the coverage for all the
+            # positions
             # first, sets the interval for the reference being parsed
             interval = round(int(plasmid_length[ref]) / number_of_points,
                              ndigits=0)
@@ -192,8 +192,6 @@ def generate_jsons(depth_dic_coverage, plasmid_length, cutoff):
                 "end": last_position
             })
             dict_cov[ref]["values"].append(array_of_cov)
-
-
 
     logger.info("Successfully generated dicts necessary for output json file "
                 "and .report.json depth file.")

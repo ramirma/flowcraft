@@ -6,7 +6,7 @@ process mappingBowtie_{{ pid }} {
 
     tag { sample_id }
 
-    publishDir 'results/mapping/bowtie2_{{ pid }}/'
+    publishDir 'results/mapping/mappingBowtie_{{ pid }}/'
 
     input:
     set sample_id, file(reads) from {{ input_channel }}
@@ -35,8 +35,10 @@ process mappingBowtie_{{ pid }} {
     samtools view -b -t ${samtoolsIdx} -@ ${task.cpus} - | \
     samtools sort -@ ${task.cpus} -o samtoolsSorted_${sample_id}.bam
     samtools index samtoolsSorted_${sample_id}.bam
-    samtools depth samtoolsSorted_${sample_id}.bam > samtoolsDepthOutput_${sample_id}.txt
-    mapping2json.py  samtoolsDepthOutput_${sample_id}.txt ${lengthJson} ${sample_id} ${params.cov_cutoff}
+    samtools depth samtoolsSorted_${sample_id}.bam > \
+    samtoolsDepthOutput_${sample_id}.txt
+    mapping2json.py  samtoolsDepthOutput_${sample_id}.txt ${lengthJson} \
+    ${params.cov_cutoff} ${sample_id}
     rm samtoolsDepthOutput_${sample_id}.txt samtoolsSorted_${sample_id}.bam
     """
 }
