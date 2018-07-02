@@ -129,73 +129,62 @@ def generate_jsons(depth_dic_coverage, plasmid_length, cutoff):
 
     # initializes the dictionary with the mean coverage results per plasmid
     percentage_bases_covered = {}
-    # the number of points to generate the plot of coverage in flowcraft-webapp
-    number_of_points = 10000
     # dict to store coverage results for a given interval of points
     dict_cov = {}
-    for ref in depth_dic_coverage:
-        # gets the first position for each reference
-        first_position = list(depth_dic_coverage[ref].keys())[0]
 
+    for ref in depth_dic_coverage:
         # calculates the percentage value per each reference
         perc_value_per_ref = float(len(depth_dic_coverage[ref])) / \
-                             float(plasmid_length[ref])
+            float(plasmid_length[ref])
         # checks if percentage value is higher or equal to the cutoff defined
         if perc_value_per_ref >= cutoff:
-            percentage_bases_covered[ref] = perc_value_per_ref
+            percentage_bases_covered[ref] = round(perc_value_per_ref, 2)
 
             # starts parser to get the array with the coverage for all the
             # positions
             # first, sets the interval for the reference being parsed
-            interval = round(int(plasmid_length[ref]) / number_of_points,
+            interval = round(int(plasmid_length[ref]) * 0.01,
                              ndigits=0)
-            # some plasmids can be smaller than 10000
+
+            # if the sequence is smaller than 100 bp, which shouldn't happen
+            # anyway
             if interval < 1:
                 interval = 1
 
             # starts dict cov for the reference
             dict_cov[ref] = {
-                "ranges": [],  # this then needs to be converted into xticks
-                "values": [],  # doesn't store 0, needs to be added in the plot
+                "length": int(plasmid_length[ref]),
                 "interval": int(interval),
-                "length": int(plasmid_length[ref])
+                "values": []
             }
 
-            last_position = 0
+            # array to store the values of coverage for each interval
             array_of_cov = []
-            for pos in depth_dic_coverage[ref]:
-                current_position = int(pos)
-                # if current_position is different from the last_position + 1
-                # it means that there is a gap in the coverage information
-                if last_position == 0 or \
-                        current_position == (last_position + 1):
-                    pass
-                # otherwise if data is continuous just add it to array_of_cov
+            # the counter that is used to output the values per interval
+            reset_counter = 0
+            # loop to generate dict_cov
+            logger.info("Generating plot data for plasmid: {}".format(ref))
+            for i in range(int(plasmid_length[ref])):
+                # checks if key for a given position is in dict and if so
+                # adds it to array of cov, otherwise it will add a 0
+                try:
+                    array_of_cov.append(int(depth_dic_coverage[ref][str(i)]))
+                except KeyError:
+                    array_of_cov.append(0)
+
+                # if the counter equals the interval then output to dict_cov
+                if reset_counter == interval:
+                    dict_cov[ref]["values"].append(
+                        int(sum(array_of_cov)/len(array_of_cov))
+                    )
+                    # reset counter
+                    reset_counter = 0
                 else:
-                    dict_cov[ref]["ranges"].append({
-                        "start": first_position,
-                        "end": last_position
-                    })
-                    dict_cov[ref]["values"].append(array_of_cov)
-                    # when there is a gap between two adjacent positions,
-                    # re-assign
-                    # first_position to the current_position
-                    first_position = current_position
-                    array_of_cov = []
-
-                array_of_cov.append(int(depth_dic_coverage[ref][pos]))
-                last_position = current_position
-
-            # add final entry to dictionary
-            dict_cov[ref]["ranges"].append({
-                "start": first_position,
-                "end": last_position
-            })
-            dict_cov[ref]["values"].append(array_of_cov)
+                    # if counter is less than interval then sums 1
+                    reset_counter += 1
 
     logger.info("Successfully generated dicts necessary for output json file "
                 "and .report.json depth file.")
-
     logger.debug("Size of percentage_bases_covered: {} kb".format(
         asizeof(percentage_bases_covered)/1024))
     logger.debug("Size of dict_cov: {} kb".format(asizeof(dict_cov)/1024))
@@ -227,10 +216,14 @@ def main(depth_file, json_dict, cutoff, sample_id):
     # check for the appropriate value for the cutoff value for coverage results
     try:
         cutoff_val = float(cutoff)
+        if cutoff_val < 0.4:
+            logger.warning("This cutoff value will generate a high volume of"
+                           "plot data. Therefore '.report.json' can be too big")
     except ValueError:
         logger.error("Cutoff value should be a string such as: '0.6'. "
                      "The outputted value: {}. Make sure to provide an "
                      "appropriate value for --cov_cutoff".format(cutoff))
+        sys.exit(1)
 
     # loads dict from file, this file is provided in docker image
 
@@ -255,11 +248,9 @@ def main(depth_file, json_dict, cutoff, sample_id):
                                                         cutoff_val)
 
     if percentage_bases_covered and dict_cov:
-        logger.info("percentage_bases_covered length: {}"
-                    "dict_cov length: {}".format(
-                        str(len(percentage_bases_covered)),
-                        str(len(dict_cov))
-                    ))
+        logger.info("percentage_bases_covered length: {}".format(
+            str(len(percentage_bases_covered))))
+        logger.info("dict_cov length: {}".format(str(len(dict_cov))))
     else:
         logger.error("Both dicts that dump to JSON file or .report.json are "
                      "empty.")
