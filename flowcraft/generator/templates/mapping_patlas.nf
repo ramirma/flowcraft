@@ -1,8 +1,7 @@
 // checks if cutoff value is higher than 0
-if (params.cov_cutoff.toString().isNumber() == 0) {
+if (Float.parseFloat(params.cov_cutoff) == 0) {
     exit 1, "Cutoff value of 0 will output every plasmid in the database with coverage 0. Provide a value higher than 0."
 }
-
 
 // process that runs bowtie2
 process mappingBowtie_{{ pid }} {
