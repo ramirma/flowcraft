@@ -47,6 +47,7 @@ if __file__.endswith(".command.sh"):
     CUTOFF = '$params.cov_cutoff'
     SAMPLE_ID = '$sample_id'
 else:
+    logger.debug("List of arguments given: {}".format(sys.argv[1:]))
     DEPTH_TXT = sys.argv[1]
     JSON_LENGTH = sys.argv[2]
     CUTOFF = sys.argv[3]
