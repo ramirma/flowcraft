@@ -14,13 +14,13 @@ class PatlasMapping(Process):
         self.output_type = "json"
 
         self.params = {
-            "max_k": {
-                "default": 10949,
-                "description": "Sets the k parameter for bowtie2 allowing to "
-                               "make multiple mappings of the same read "
-                               "against several hits on the query sequence or "
-                               "sequences."
-            },
+            # "max_k": {
+            #     "default": 10949,
+            #     "description": "Sets the k parameter for bowtie2 allowing to "
+            #                    "make multiple mappings of the same read "
+            #                    "against several hits on the query sequence or "
+            #                    "sequences."
+            # },
             "trim5": {
                 "default": 0,
                 "description": "Sets trim5 option for bowtie. This will become"

@@ -34,8 +34,7 @@ process mappingBowtie_{{ pid }} {
     //}
 
     """
-    bowtie2 -x ${bowtie2Index} ${readsString} -p ${task.cpus} -k \
-    ${params.max_k} -5 ${params.trim5} | \
+    bowtie2 -x ${bowtie2Index} ${readsString} -p ${task.cpus} -a -5 ${params.trim5} | \
     samtools view -b -t ${samtoolsIdx} -@ ${task.cpus} - | \
     samtools sort -@ ${task.cpus} -o samtoolsSorted_${sample_id}.bam
     samtools index samtoolsSorted_${sample_id}.bam
