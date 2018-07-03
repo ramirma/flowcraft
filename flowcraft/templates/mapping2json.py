@@ -44,13 +44,13 @@ logger = get_logger(__file__)
 if __file__.endswith(".command.sh"):
     DEPTH_TXT = '$depthFile'
     JSON_LENGTH = '$lengthJson'
-    SAMPLE_ID = '$sample_id'
     CUTOFF = '$params.cov_cutoff'
+    SAMPLE_ID = '$sample_id'
 else:
     DEPTH_TXT = sys.argv[1]
     JSON_LENGTH = sys.argv[2]
-    SAMPLE_ID = sys.argv[3]
-    CUTOFF = sys.argv[4]
+    CUTOFF = sys.argv[3]
+    SAMPLE_ID = sys.argv[4]
 
 # check if all variables are assigned
 if DEPTH_TXT and JSON_LENGTH and SAMPLE_ID and CUTOFF:
@@ -214,10 +214,11 @@ def main(depth_file, json_dict, cutoff, sample_id):
     """
 
     # check for the appropriate value for the cutoff value for coverage results
+    logger.debug("Cutoff value: {}. Type: {}".format(cutoff, type(cutoff)))
     try:
         cutoff_val = float(cutoff)
         if cutoff_val < 0.4:
-            logger.warning("This cutoff value will generate a high volume of"
+            logger.warning("This cutoff value will generate a high volume of "
                            "plot data. Therefore '.report.json' can be too big")
     except ValueError:
         logger.error("Cutoff value should be a string such as: '0.6'. "

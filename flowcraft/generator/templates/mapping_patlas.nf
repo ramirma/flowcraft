@@ -41,7 +41,7 @@ process mappingBowtie_{{ pid }} {
     samtools index samtoolsSorted_${sample_id}.bam
     samtools depth samtoolsSorted_${sample_id}.bam > \
     samtoolsDepthOutput_${sample_id}.txt
-    mapping2json.py  samtoolsDepthOutput_${sample_id}.txt ${lengthJson} ${params.cov_cutoff} ${sample_id}
+    mapping2json.py samtoolsDepthOutput_${sample_id}.txt ${lengthJson} ${params.cov_cutoff} ${sample_id}
     rm samtoolsDepthOutput_${sample_id}.txt samtoolsSorted_${sample_id}.bam
     """
 }
