@@ -10,16 +10,13 @@ process mappingBowtie_{{ pid }} {
 
     tag { sample_id }
 
-    publishDir 'results/mapping/mappingBowtie_{{ pid }}/'
-
     input:
     set sample_id, file(reads) from {{ input_channel }}
     val bowtie2Index from IN_index_files
     val samtoolsIdx from IN_samtools_indexes
-    val lengthJson from IN_length_json
 
     output:
-    set sample_id, file("*.txt_mapping.json") into mappingOutputChannel_{{ pid }}
+    set sample_id, file("samtoolsDepthOutput*.txt") into samtoolsResults
     {% with task_name="mappingBowtie" %}
     {%- include "compiler_channels.txt" ignore missing -%}
     {% endwith %}
@@ -40,9 +37,34 @@ process mappingBowtie_{{ pid }} {
     samtools index samtoolsSorted_${sample_id}.bam
     samtools depth samtoolsSorted_${sample_id}.bam > \
     samtoolsDepthOutput_${sample_id}.txt
-    mapping2json.py samtoolsDepthOutput_${sample_id}.txt ${lengthJson} ${params.cov_cutoff} ${sample_id}
     rm samtoolsDepthOutput_${sample_id}.txt samtoolsSorted_${sample_id}.bam*
     """
+}
+
+/**
+* These dumping process parses the depth file for each sample and filters it
+* depending on the cutoff set by the user.
+*/
+process jsonDumpingMapping_{{ pid }} {
+
+    {% include "post.txt" ignore missing %}
+
+    tag { sample_id }
+
+    publishDir 'results/mapping/mapping_json_{{ pid }}/'
+
+    input:
+    set sample_id, file(depthFile) from samtoolsResults
+    val lengthJson from IN_length_json
+
+    output:
+    set sample_id, file("samtoolsDepthOutput*.txt_mapping.json") optional true into mappingOutputChannel_{{ pid }}
+    {% with task_name="jsonDumpingMapping", sample_id="sample_id" %}
+    {%- include "compiler_channels.txt" ignore missing -%}
+    {% endwith %}
+
+    script:
+    template "mapping2json.py"
 }
 
 {{ forks }}

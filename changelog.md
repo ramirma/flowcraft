@@ -10,7 +10,7 @@
 ### Components changes
 
 - `mapping_patlas`: refactored to remove temporary files used to create
-sam and bam files
+sam and bam files and added data to .report.json
 
 ### Minor/Other changes
 

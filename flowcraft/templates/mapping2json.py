@@ -28,8 +28,8 @@ Code documentation
 
 """
 
-__version__ = "1.0.1"
-__build__ = "20022018"
+__version__ = "1.1.0"
+__build__ = "04072018"
 __template__ = "mapping2json-nf"
 
 import os
@@ -47,11 +47,17 @@ if __file__.endswith(".command.sh"):
     CUTOFF = '$params.cov_cutoff'
     SAMPLE_ID = '$sample_id'
 else:
-    logger.debug("List of arguments given: {}".format(sys.argv[1:]))
     DEPTH_TXT = sys.argv[1]
     JSON_LENGTH = sys.argv[2]
     CUTOFF = sys.argv[3]
     SAMPLE_ID = sys.argv[4]
+
+logger.debug("List of arguments given: {}".format([
+    DEPTH_TXT,
+    JSON_LENGTH,
+    CUTOFF,
+    SAMPLE_ID
+]))
 
 # check if all variables are assigned
 if DEPTH_TXT and JSON_LENGTH and SAMPLE_ID and CUTOFF:
